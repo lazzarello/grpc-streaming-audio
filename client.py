@@ -146,7 +146,7 @@ class App(QWidget):
         self.device_id_input.setPlaceholderText("Enter Device ID")
         self.device_id_input.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.device_id_input.setText(DEVICE_ID)
-        self.device_id_input.setStyleSheet("background-color: #E0E0E0; border: 1px solid #CCCCCC;")
+        self.device_id_input.setStyleSheet("background-color: #000000; border: 1px solid #CCCCCC;")
 
         # Window properties
         self.setWindowTitle("Client")
