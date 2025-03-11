@@ -1,0 +1,118 @@
+syntax = "proto3";
+
+package com.opalcamera.test;
+
+message RGBAColor {
+  fixed32 rgba = 1;  // hex code 0xRRGGBBAA, AA is intensity from (0-255)
+}
+
+// Represents the device state (LEDs, Buttons and everything else)
+message DeviceStatus {
+  enum ButtonStatus {
+    PRESSED = 0;
+    RELEASED = 1;
+  }
+
+  RGBAColor led_0 = 1;
+  RGBAColor led_1 = 2;
+  RGBAColor led_2 = 3;
+  RGBAColor led_3 = 4;
+  RGBAColor led_4 = 5;
+  RGBAColor led_5 = 6;
+
+  // Button states, either pressed or released
+  ButtonStatus button_1 = 7;
+  ButtonStatus button_2 = 8;
+  ButtonStatus button_3 = 9;
+  ButtonStatus button_4 = 10;
+
+  float battery_level = 11;  // Battery level of the device
+}
+
+message DeviceStatusSet {
+  // Individually addressible RGB LEDs, bytes format is 0xRRGGBBAA, where AA is
+  // intensity from 0x00 - 0xFF
+  RGBAColor led_0 = 1;
+  RGBAColor led_1 = 2;
+  RGBAColor led_2 = 3;
+  RGBAColor led_3 = 4;
+  RGBAColor led_4 = 5;
+  RGBAColor led_5 = 6;
+}
+
+// Message sent from server to device requesting to GET/SET the device status
+message DeviceStatusRequest {
+  oneof request {
+    bool get = 1;
+    DeviceStatusSet set = 2;
+  }
+}
+
+// Message sent from device to server returning DeviceStatus (GET) or status of
+// the SET ("success" or error message)
+message DeviceStatusResponse {
+  oneof response {
+    DeviceStatus state = 1;
+    string status = 2;
+  }
+}
+
+// Has an index (1,2,3,4) to represent the button, and an ButtonEventType to
+// represent the event
+message ButtonEvent {
+  enum ButtonId {
+    BUTTON_1 = 0;
+    BUTTON_2 = 1;
+    BUTTON_3 = 2;
+    BUTTON_4 = 3;
+  }
+
+  enum ButtonEventType {
+    PRESS = 0;
+    HOLD = 1;  // we should handle long press detection on the device due to
+               // network latency
+    RELEASE = 2;
+  }
+
+  ButtonId button_id = 1;
+  ButtonEventType event = 2;
+}
+
+// Extensible device event for future events (microphone activity)
+message DeviceEvent {
+  oneof event {
+    ButtonEvent button_event = 1;
+  }
+}
+
+// Message sent from server to device with ack for the event
+message DeviceEventResponse {
+  bool ack = 1;
+}
+
+// Message sent from device to server requesting audio stream
+message AudioStreamRequest {
+  bool start = 1;
+}
+
+// Audio packet to be sent between client and server
+message AudioPacket {
+  bool is_start = 1;  // Indicates the start of a recording session
+  bool is_end = 2;    // Indicates the end of a recording session
+  bytes data = 3;     // Audio data payload
+}
+
+// Service definition for bidirectional communication between device and server
+service DeviceService {
+  // The server send DeviceStatusRequests and expects responses in
+  // DeviceStatusResponse
+  rpc StatusStream(stream DeviceStatusResponse)
+      returns (stream DeviceStatusRequest);
+
+  // The device streams DeviceEvents(s) and expects a DeviceEventResponse to ACK
+  rpc EventStream(stream DeviceEvent) returns (stream DeviceEventResponse);
+
+  // The device opens a stream from the server with an AudioStreamRequest and server 
+  // streams Opus-encoded audio packets
+  rpc ServerAudioStream(AudioStreamRequest) returns (stream AudioPacket);
+}
