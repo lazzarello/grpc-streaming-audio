@@ -4,14 +4,19 @@ import grpc
 import comms_pb2
 import comms_pb2_grpc
 import queue
+# import audio # might not need this
 
-# implement functions outside of the proto class here. Helper functions.
-def event_helper(event):
+# implement functions outside of the proto classs. event handler functions.
+def event_handler_foo(event):
     pass
 
-# is this the right place to queue up messages?
-status_queue = queue.Queue()
+# is this the right place to queue up messages? Might only need two, not three
+device_state_queue = queue.Queue()
 events_queue = queue.Queue()
+device_playback_queue = queue.Queue()
+devices_states = {}
+sound_filename = 'playback.opus'
+sound_buffer = open(sound_filename, 'rb')
 
 class DeviceServiceServicer(comms_pb2_grpc.DeviceServiceServicer):
     def StatusStream(self, request_iterator, context):
@@ -20,6 +25,8 @@ class DeviceServiceServicer(comms_pb2_grpc.DeviceServiceServicer):
         '''
         try:
             for request in request_iterator:
+                # get the device state from the queue
+                # device_state_queue.put(request)
                 print(f"Server received status: {request}")
                 # Simply respond with a GET request to keep the status loop going
                 yield comms_pb2.DeviceStatusRequest(get=True)
@@ -35,6 +42,7 @@ class DeviceServiceServicer(comms_pb2_grpc.DeviceServiceServicer):
         try:
             for request in request_iterator:
                 print(f"Server received event: {request}")
+                # add some event handling logic here for device state changes, audio controls, power, mode
                 # put the event in the queue, so different functions can access it
                 events_queue.put(request)
                 # respond with an ACK to keep the event loop going
@@ -54,11 +62,14 @@ class DeviceServiceServicer(comms_pb2_grpc.DeviceServiceServicer):
             
             while True:
                 try:
+                    # move this logic into  the EventStream function, put only message for audio transport into
+                    # device_playback_queue
                     # Check for Button 4 press event
                     event = events_queue.get(timeout=1.0)  # 1 second timeout
                     if (hasattr(event, 'button_event') and 
                         event.button_event.button_id == comms_pb2.ButtonEvent.ButtonId.BUTTON_4):
                         # Send start packet
+                        # does this yield work for the whole audio buffer? Do I have to chunk it in a helper function?
                         yield comms_pb2.AudioPacket(
                             is_start=True,
                             is_end=False,

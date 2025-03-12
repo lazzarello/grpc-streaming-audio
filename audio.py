@@ -4,6 +4,8 @@ import wave
 import pyaudio
 
 
+# this plays a file from disk, which is recording for each Play/Stop transition
+# it could be a reference for how to stream the audio packets from the server
 def play_wav(file_path):
     chunk_size = 1024  # Read in chunks of 1024 samples
     wf = wave.open(file_path, "rb")
