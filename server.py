@@ -3,10 +3,15 @@ import logging
 import grpc
 import comms_pb2
 import comms_pb2_grpc
+import queue
 
 # implement functions outside of the proto class here. Helper functions.
 def event_helper(event):
     pass
+
+# is this the right place to queue up messages?
+status_queue = queue.Queue()
+events_queue = queue.Queue()
 
 class DeviceServiceServicer(comms_pb2_grpc.DeviceServiceServicer):
     def StatusStream(self, request_iterator, context):
@@ -30,7 +35,9 @@ class DeviceServiceServicer(comms_pb2_grpc.DeviceServiceServicer):
         try:
             for request in request_iterator:
                 print(f"Server received event: {request}")
-                # Simply respond with an ACK to keep the event loop going
+                # put the event in the queue, so different functions can access it
+                events_queue.put(request)
+                # respond with an ACK to keep the event loop going
                 yield comms_pb2.DeviceEventResponse(ack=True)
         except grpc.RpcError as e:
             print(f"RPC error in EventStream: {e}")
@@ -45,21 +52,38 @@ class DeviceServiceServicer(comms_pb2_grpc.DeviceServiceServicer):
         try:
             print(f"Server received audio stream request: {request}")
             
-            # Send start packet
-            yield comms_pb2.AudioPacket(
-                is_start=True,
-                is_end=False,
-                data=b''
-            )
-            print("Server sent start packet")
+            while True:
+                try:
+                    # Check for Button 4 press event
+                    event = events_queue.get(timeout=1.0)  # 1 second timeout
+                    if (hasattr(event, 'button_event') and 
+                        event.button_event.button_id == comms_pb2.ButtonEvent.ButtonId.BUTTON_4):
+                        # Send start packet
+                        yield comms_pb2.AudioPacket(
+                            is_start=True,
+                            is_end=False,
+                            data=b''
+                        )
+                        print("Server sent start packet")
 
-            # Send end packet
-            yield comms_pb2.AudioPacket(
-                is_start=False,
-                is_end=True,
-                data=b''
-            )
-            print("Server sent end packet")
+                    if (hasattr(event, 'button_event') and 
+                        event.button_event.button_id == comms_pb2.ButtonEvent.ButtonId.BUTTON_3):
+                        # Send end packet
+                        yield comms_pb2.AudioPacket(
+                            is_start=False,
+                            is_end=True,
+                            data=b''
+                        )
+                        print("Server sent end packet")
+                except queue.Empty:
+                    # No events in queue, continue waiting
+                    continue
+                except grpc.RpcError as e:
+                    print(f"RPC error in ServerAudioStream: {e}")
+                    break
+                except Exception as e:
+                    print(f"Error in ServerAudioStream: {e}")
+                    break
 
         except grpc.RpcError as e:
             print(f"RPC error in ServerAudioStream: {e}")
