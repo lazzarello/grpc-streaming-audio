@@ -110,6 +110,16 @@ class DeviceManager():
             # send status SET request
             return request.set
 
+    def device_status_set(self, leds):
+        return comms_pb2.DeviceStatusSet(
+            led_0=comms_pb2.RGBAColor(rgba=leds[0]),
+            led_1=comms_pb2.RGBAColor(rgba=leds[1]),
+            led_2=comms_pb2.RGBAColor(rgba=leds[2]),
+            led_3=comms_pb2.RGBAColor(rgba=leds[3]),
+            led_4=comms_pb2.RGBAColor(rgba=leds[4]),
+            led_5=comms_pb2.RGBAColor(rgba=leds[5]),
+        )
+
 # can't wait to get to this part
 class AudioStreamManager():
     def __init__(self, device_id):
@@ -127,7 +137,8 @@ class DeviceServiceServicer(comms_pb2_grpc.DeviceServiceServicer):
         Set state immediately from DeviceManager to set the status from output proto.
         '''
         print("Server received status request from client")
-        yield comms_pb2.DeviceStatusRequest()
+        status_set = self.device_manager.device_status_set(self.device_manager.leds)
+        yield comms_pb2.DeviceStatusRequest(set=status_set)
 
         # for status_response in request_iterator:
         #     print(f"Server received status response: {status_response}")
@@ -137,9 +148,7 @@ class DeviceServiceServicer(comms_pb2_grpc.DeviceServiceServicer):
             print(f"Server received request status: {request}")
             try:
                 event = self.device_manager.status_queue.get()  # 1 second timeout
-                # yielding here only works for one response to the client
-                # I can't figure out when to yield
-                # SOLUTION: this yield is required as it the first yield because the client needs a response to stop asking if it is connected.
+                # this yield is required as it the first yield because the client needs a response to stop asking if it is connected.
                 yield event
                 # perhaps some logic here to handle the GET versus SET logic?
                 # right now I'm assuming only SET from button events.

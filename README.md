@@ -22,13 +22,14 @@ pw-record --channels=1 --rate=48000 --format=s16 - | opusenc --raw --raw-rate 48
 
 ## TODO
 
-* build initial state to send to device from the protos in StateStream
-* Complete queue audio transport control
-* Audio transport control for single device
-* Device state control for multiple devices
-* Audio transport control for multiple devices
 * Stream audio file from memory to AudioServerStream function. TODO: get better understanding of this aspect of gRPC.
+* Audio transport control for single device
+  * Complete audio transport control queue
+* Device state control for multiple devices
+  * Audio transport control for multiple devices
 * Make an LED state transition flash-at-connect function, for fun!  
+* turn off all LEDs on disconnect (this might be a client side thing)
+* Fix bug where device set messages don't always send on button events.
 
 ## Open Questions
 
