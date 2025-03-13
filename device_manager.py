@@ -38,6 +38,7 @@ class DeviceManager():
         print(f"Led 2 is {hex(self.leds[2])}")
         status_set = self.device_status_set(self.leds)
         self.status_queue.put(comms_pb2.DeviceStatusRequest(set=status_set))
+        self.audio_event_queue.put({"play": True})
         print(f"DeviceManager handled mode event {repr(event)}, set device state to {text_format.MessageToString(status_set)}")
 
     def handle_mode_event(self, event):
@@ -51,6 +52,7 @@ class DeviceManager():
         self.leds[1] = 0x01FFFFFF if self.leds[1] == 0x00000000 else 0x00000000
         print(f"Led 1 is {hex(self.leds[1])}")
         status_set = self.device_status_set(self.leds)
+        self.audio_event_queue.put({"play": False})
         self.status_queue.put(comms_pb2.DeviceStatusRequest(set=status_set))
         print(f"DeviceManager handled mode event {repr(event)}, set device state to {text_format.MessageToString(status_set)}")
 

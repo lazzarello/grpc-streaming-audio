@@ -81,60 +81,62 @@ class DeviceServiceServicer(comms_pb2_grpc.DeviceServiceServicer):
     def ServerAudioStream(self, request, context):
         '''
         Audio stream should have a logic block to look for the start message, 
-        then yield to the data message until the end message is received.
+        which opens the gRPC stream, then waits for a play event, then starts streaming audio.
         '''
         try:
             sound_buffer = audio.wave.open(sound_filename, 'rb')
             print(f"Server received audio stream request: {request}")
             
-            # CHUNK_SIZE = 1024 // 2 # hack, see below
             if request.start:
                 print("Server recieved start packet")
+                print("Waiting for play event...")
                 # Send start packet with first chunk of audio
-                first_chunk = sound_buffer.readframes(desired_frame_size) # frame size is specified in https://pyogg.readthedocs.io/en/latest/examples.html
-                print(f"Server read first audio chunk {len(first_chunk)} long")
-                first_opus_data = self.opus_coder.encode(first_chunk)
-                yield comms_pb2.AudioPacket(
-                    is_start=True,
-                    is_end=False,
-                    data=bytes(first_opus_data)
-                )
-                print("Server sent start AudioPacket")
+                event = self.device_manager.audio_event_queue.get()
+                if event["play"]:
+                    first_chunk = sound_buffer.readframes(desired_frame_size) # frame size is specified in https://pyogg.readthedocs.io/en/latest/examples.html
+                    print(f"Server read first audio chunk {len(first_chunk)} long")
+                    first_opus_data = self.opus_coder.encode(first_chunk)
+                    yield comms_pb2.AudioPacket(
+                        is_start=True,
+                        is_end=False,
+                        data=bytes(first_opus_data)
+                    )
+                    print("Server sent start AudioPacket")
 
-                # Read and send all following audio data in chunks
-                while True:
-                    chunk = sound_buffer.readframes(desired_frame_size)
-                    if not chunk:
-                        break
-                    # print(f"Length of chunk is {len(chunk)} and desired frame size is {desired_frame_size}")
-                    if len(chunk) // 2 == desired_frame_size: # divide by two, wacky!
-                        opus_data = self.opus_coder.encode(chunk)
-                        print(f"Server read audio chunk {len(chunk)} long")
-                        yield comms_pb2.AudioPacket(
-                            is_start=False,
-                            is_end=False,
-                            data=bytes(opus_data)
-                        )
-                    else:
-                        # lolz, what did the LLM do here? 
-                        opus_data = bytes(opus_data).ljust(desired_frame_size, b'\x00')
-                        print(f"Server read padded audio chunk {len(chunk)} long and padded to {len(opus_data)}")
-                        yield comms_pb2.AudioPacket(
-                            is_start=False,
-                            is_end=False,
-                            data=opus_data
-                        )
+                    # Read and send all following audio data in chunks
+                    while True:
+                        chunk = sound_buffer.readframes(desired_frame_size)
+                        if not chunk:
+                            break
+                        # print(f"Length of chunk is {len(chunk)} and desired frame size is {desired_frame_size}")
+                        if len(chunk) // 2 == desired_frame_size: # divide by two, I think is needed because the PCM data is signed, at least the sample_width is 2
+                            opus_data = self.opus_coder.encode(chunk)
+                            print(f"Server read audio chunk {len(chunk)} long")
+                            yield comms_pb2.AudioPacket(
+                                is_start=False,
+                                is_end=False,
+                                data=bytes(opus_data)
+                            )
+                        else:
+                            # lolz, what did the LLM do here? 
+                            opus_data = bytes(opus_data).ljust(desired_frame_size, b'\x00')
+                            print(f"Server read padded audio chunk {len(chunk)} long and padded to {len(opus_data)}")
+                            yield comms_pb2.AudioPacket(
+                                is_start=False,
+                                is_end=False,
+                                data=opus_data
+                            )
 
-                # Send end packet, data is ignored on the client side
-                yield comms_pb2.AudioPacket(
-                    is_start=False,
-                    is_end=True,
-                    data=b''
-                )
-                print("Server sent end packet")
-                # Reset sound buffer by reopening the file
-                sound_buffer.close()
-                sound_buffer = audio.wave.open(sound_filename, 'rb')
+                    # Send end packet, data is ignored on the client side
+                    yield comms_pb2.AudioPacket(
+                        is_start=False,
+                        is_end=True,
+                        data=b''
+                    )
+                    print("Server sent end packet")
+                    # Reset sound buffer by reopening the file
+                    sound_buffer.close()
+                    sound_buffer = audio.wave.open(sound_filename, 'rb')
         except grpc.RpcError as e:
             print(f"RPC error in ServerAudioStream: {e}")
         except Exception as e:
