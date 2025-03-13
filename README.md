@@ -22,7 +22,8 @@ pw-record --channels=1 --rate=48000 --format=s16 - | opusenc --raw --raw-rate 48
 
 ## TODO
 
-* Stream audio file from memory to AudioServerStream function. TODO: get better understanding of this aspect of gRPC.
+* Stream audio file from memory to AudioServerStream function. TODO: get better understanding of this aspect of gRPC. make a seperate audio_server.py that starts and immediately starts sending AudioPacket messages with the audio buffer.
+* Draw protocol diagram from client/server interaction and protos.
 * Audio transport control for single device
   * Complete audio transport control queue
 * Device state control for multiple devices
