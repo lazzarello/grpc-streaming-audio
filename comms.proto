@@ -7,6 +7,7 @@ message RGBAColor {
 }
 
 // Represents the device state (LEDs, Buttons and everything else)
+// DeviceStatus doesn't have device ID so the server can't support multiple devices yet.
 message DeviceStatus {
   enum ButtonStatus {
     PRESSED = 0;
@@ -27,6 +28,7 @@ message DeviceStatus {
   ButtonStatus button_4 = 10;
 
   float battery_level = 11;  // Battery level of the device
+  string device_id = 12; // a string indicating the device id
 }
 
 message DeviceStatusSet {
@@ -41,6 +43,7 @@ message DeviceStatusSet {
 }
 
 // Message sent from server to device requesting to GET/SET the device status
+// the oneof type for request has some special method named .kind() which can be used for logic in the application code
 message DeviceStatusRequest {
   oneof request {
     bool get = 1;

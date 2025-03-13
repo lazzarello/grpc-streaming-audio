@@ -20,15 +20,30 @@ sudo apt install opus-tools
 pw-record --channels=1 --rate=48000 --format=s16 - | opusenc --raw --raw-rate 48000 --raw-chan 1 - playback.opus
 ```
 
+## TODO
+
+* build initial state to send to device from the protos in StateStream
+* Complete queue audio transport control
+* Audio transport control for single device
+* Device state control for multiple devices
+* Audio transport control for multiple devices
+* Stream audio file from memory to AudioServerStream function. TODO: get better understanding of this aspect of gRPC.
+* Make an LED state transition flash-at-connect function, for fun!  
+
 ## Open Questions
 
-* What does the Mode button do?
 * How does the device handle interrupts? (i.e. start a new audio file before the previous one is done playing)
 * Do I need to chunk the sound buffer from memory into multiple AudioPacket messages to play back streaming audio?
 * How is an audio file closed? Does simply ending the stream from the server close it?
 
 ## Closed Questions
 
+* Why is the client function handle_status_response actually using logic from requests, not responses? Without modifying the client, this is very confusing
+  A: The terms "request" and "response" are very confusing in this test. I just figured that part out.
+* Why doesn't the server ever enter the request_iterator loop when it gets a status request iterator?
+  A: because the client needs a "primed response" which is the first yield in the StatusStream function.
+* What does the Mode button do?
+  A: Nothing, there is a handler for button 2 on the client but no mode logic on the server. Perhaps make it toggle some LEDs?
 * How will a synchronous implementation of the server work?
   A: Using threads and queues, see server.py
 * How will an asynchronous implementation of the server work?
@@ -41,16 +56,3 @@ pw-record --channels=1 --rate=48000 --format=s16 - | opusenc --raw --raw-rate 48
   A: Initially, a single python dictionary could work, especially with asyncio, might be different with threads.
 * Cloud deploy? Weeeee, that's the easy part.
   A: Make a dockerfile and deploy to Render or something like that
-
-## TODO
-
-* ~~Read audio file into memory~~
-* Stream audio file from memory to AudioServerStream function. TODO: get better understanding of this aspect of gRPC.
-* Complete queues for event routing logic to device state and audio transport control
-* Complete event routing logic from queues
-  * Device state control for single device
-  * Device state control for multiple devices
-  * Audio transport control for single device
-  * Audio transport control for multiple devices
-* Add event handler for the Mode button
-* Make an LED sequence flash-at-startup function, for fun! 
