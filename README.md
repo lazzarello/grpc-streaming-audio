@@ -22,8 +22,6 @@ pw-record --channels=1 --rate=48000 --format=s16 - | opusenc --raw --raw-rate 48
 
 ## TODO
 
-* Audio transport control for single device
-  * Complete audio transport control queue
 * Device state control for multiple devices
   * Audio transport control for multiple devices
 * Draw protocol diagram from client/server interaction and protos.
@@ -33,8 +31,6 @@ pw-record --channels=1 --rate=48000 --format=s16 - | opusenc --raw --raw-rate 48
 
 ## Open Questions
 
-* How do I use the finite state machine pattern for the device state + button events?
-  A: From Termie "If play and stop do different things based on some other toggle etc you can start pretending that state machine is useful. But if they always play and always stop then that's just what they do"
 * How do I handle gRPC metadata to get the device_id on the server?
 * How does the device handle interrupts? (i.e. start a new audio file before the previous one is done playing)
 
@@ -43,6 +39,10 @@ https://grpc.io/docs/what-is-grpc/core-concepts/#bidirectional-streaming-rpc
 
 ## Closed Questions
 
+* What does the stop button do?
+  A: In the comments of the client, it turns all LEDs off 
+* How do I use the finite state machine pattern for the device state + button events?
+  A: From Termie "If play and stop do different things based on some other toggle etc you can start pretending that state machine is useful. But if they always play and always stop then that's just what they do"
 * How is an audio file closed? Does simply ending the stream from the server close it?
   A: Yes, because it is read in chunks and exits when there are no more chunks
 * Do I need to chunk the sound buffer from memory into multiple AudioPacket messages to play back streaming audio?

@@ -82,61 +82,96 @@ class DeviceServiceServicer(comms_pb2_grpc.DeviceServiceServicer):
         '''
         Audio stream should have a logic block to look for the start message, 
         which opens the gRPC stream, then waits for a play event, then starts streaming audio.
+        The transport controls are a bit of a mess, they might be redundantly using a second queue but hey, they work now...
         '''
+        import queue
+        
         try:
-            sound_buffer = audio.wave.open(sound_filename, 'rb')
             print(f"Server received audio stream request: {request}")
             
             if request.start:
-                print("Server recieved start packet")
+                print("Server received start packet")
                 print("Waiting for play event...")
-                # Send start packet with first chunk of audio
-                event = self.device_manager.audio_event_queue.get()
-                if event["play"]:
-                    first_chunk = sound_buffer.readframes(desired_frame_size) # frame size is specified in https://pyogg.readthedocs.io/en/latest/examples.html
-                    print(f"Server read first audio chunk {len(first_chunk)} long")
-                    first_opus_data = self.opus_coder.encode(first_chunk)
-                    yield comms_pb2.AudioPacket(
-                        is_start=True,
-                        is_end=False,
-                        data=bytes(first_opus_data)
-                    )
-                    print("Server sent start AudioPacket")
+                
+                # Main loop that watches for play events at 10Hz
+                while True:
+                    try:
+                        # Poll the queue with a 0.1 second timeout (10Hz)
+                        event = self.device_manager.audio_event_queue.get(block=True, timeout=0.1)
+                        
+                        if "play" in event:
+                            if event["play"]:
+                                # Play event received, start streaming audio
+                                print("Play event received, starting audio stream")
+                                sound_buffer = audio.wave.open(sound_filename, 'rb')
+                                
+                                # Send start packet with first chunk of audio
+                                first_chunk = sound_buffer.readframes(desired_frame_size)
+                                print(f"Server read first audio chunk {len(first_chunk)} long")
+                                first_opus_data = self.opus_coder.encode(first_chunk)
+                                yield comms_pb2.AudioPacket(
+                                    is_start=True,
+                                    is_end=False,
+                                    data=bytes(first_opus_data)
+                                )
+                                print("Server sent start AudioPacket")
 
-                    # Read and send all following audio data in chunks
-                    while True:
-                        chunk = sound_buffer.readframes(desired_frame_size)
-                        if not chunk:
-                            break
-                        # print(f"Length of chunk is {len(chunk)} and desired frame size is {desired_frame_size}")
-                        if len(chunk) // 2 == desired_frame_size: # divide by two, I think is needed because the PCM data is signed, at least the sample_width is 2
-                            opus_data = self.opus_coder.encode(chunk)
-                            print(f"Server read audio chunk {len(chunk)} long")
-                            yield comms_pb2.AudioPacket(
-                                is_start=False,
-                                is_end=False,
-                                data=bytes(opus_data)
-                            )
-                        else:
-                            # lolz, what did the LLM do here? 
-                            opus_data = bytes(opus_data).ljust(desired_frame_size, b'\x00')
-                            print(f"Server read padded audio chunk {len(chunk)} long and padded to {len(opus_data)}")
-                            yield comms_pb2.AudioPacket(
-                                is_start=False,
-                                is_end=False,
-                                data=opus_data
-                            )
+                                # Read and send all following audio data in chunks
+                                streaming = True
+                                while streaming:
+                                    # Check for stop events while streaming
+                                    try:
+                                        stop_event = self.device_manager.audio_event_queue.get(block=False)
+                                        if "play" in stop_event and not stop_event["play"]:
+                                            print("Stop event received, stopping audio stream")
+                                            streaming = False
+                                            break
+                                    except queue.Empty:
+                                        # No stop event, continue streaming
+                                        pass
+                                    
+                                    chunk = sound_buffer.readframes(desired_frame_size)
+                                    if not chunk:
+                                        break
+                                    
+                                    if len(chunk) // 2 == desired_frame_size:
+                                        opus_data = self.opus_coder.encode(chunk)
+                                        print(f"Server read audio chunk {len(chunk)} long")
+                                        yield comms_pb2.AudioPacket(
+                                            is_start=False,
+                                            is_end=False,
+                                            data=bytes(opus_data)
+                                        )
+                                    else:
+                                        # Handle partial chunks
+                                        # LLM added this, which fails but revealed that I wasn't encoding the last chunk, just padding it
+                                        # opus_data = self.opus_coder.encode(chunk)
+                                        padded_data = bytes(chunk).ljust(desired_frame_size, b'\x00')
+                                        print(f"Server read padded audio chunk {len(chunk)} long and padded to {len(padded_data)}")
+                                        opus_data = self.opus_coder.encode(padded_data)
+                                        yield comms_pb2.AudioPacket(
+                                            is_start=False,
+                                            is_end=False,
+                                            data=bytes(opus_data)
+                                        )
 
-                    # Send end packet, data is ignored on the client side
-                    yield comms_pb2.AudioPacket(
-                        is_start=False,
-                        is_end=True,
-                        data=b''
-                    )
-                    print("Server sent end packet")
-                    # Reset sound buffer by reopening the file
-                    sound_buffer.close()
-                    sound_buffer = audio.wave.open(sound_filename, 'rb')
+                                # Send end packet
+                                yield comms_pb2.AudioPacket(
+                                    is_start=False,
+                                    is_end=True,
+                                    data=b''
+                                )
+                                print("Server sent end packet")
+                                
+                                # Close and reset sound buffer
+                                sound_buffer.close()
+                            else:
+                                # Stop event received but not currently streaming
+                                print("Server received Stop event received, but not currently streaming")
+                    except queue.Empty:
+                        # No event in queue, continue polling
+                        continue
+                
         except grpc.RpcError as e:
             print(f"RPC error in ServerAudioStream: {e}")
         except Exception as e:
