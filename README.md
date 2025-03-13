@@ -37,6 +37,9 @@ pw-record --channels=1 --rate=48000 --format=s16 - | opusenc --raw --raw-rate 48
 * Do I need to chunk the sound buffer from memory into multiple AudioPacket messages to play back streaming audio?
 * How is an audio file closed? Does simply ending the stream from the server close it?
 
+multiple devices clue...
+https://grpc.io/docs/what-is-grpc/core-concepts/#bidirectional-streaming-rpc
+
 ## Closed Questions
 
 * Why is the client function handle_status_response actually using logic from requests, not responses? Without modifying the client, this is very confusing
