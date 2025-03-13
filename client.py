@@ -5,6 +5,7 @@ import signal
 import sys
 import threading
 import wave
+import subprocess
 from datetime import datetime
 
 import grpc
@@ -14,7 +15,8 @@ from PyQt6.QtGui import QColor, QPainter, QPalette, QPen, QPolygon
 from PyQt6.QtWidgets import QApplication, QLabel, QLineEdit, QPushButton, QWidget
 
 import comms_pb2, comms_pb2_grpc
-from audio import OpusCoder, play_wav
+# from audio import OpusCoder, play_wav
+from audio import OpusCoder
 
 DEVICE_ID = "test_client"
 
@@ -343,7 +345,9 @@ class App(QWidget):
                         f.close()
                         f = None
                         print(f"Recording saved to {filename}")
-                        play_wav(filename)
+                        subprocess.run(["pw-play", filename])
+                        # pyaudio is broken on Linux
+                        # play_wav(filename)
                         num_packets = 0
                     num_packets += 1
 

@@ -6,6 +6,7 @@ import pyaudio
 
 # this plays a file from disk, which is recording for each Play/Stop transition
 # it could be a reference for how to stream the audio packets from the server
+# pyaudio is broken on Linux, removed from the client.
 def play_wav(file_path):
     chunk_size = 1024  # Read in chunks of 1024 samples
     wf = wave.open(file_path, "rb")
@@ -55,6 +56,8 @@ class OpusCoder:
         self.opus_decoder.set_channels(channels)
 
     def encode(self, pcm_audio_bytes):
+        # why is this 2048 bytes long when the chunk size is 1024?
+        print(f"audio.py: Encoding audio chunk {len(pcm_audio_bytes)} long")
         return self.opus_encoder.encode(pcm_audio_bytes)
 
     def decode(self, opus_audio_bytes):

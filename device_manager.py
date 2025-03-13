@@ -15,7 +15,7 @@ class DeviceManager():
                      ,0x00000000
                      ,0x00000000
                      ,0x00000000]
-        self.event_queue = queue.Queue()
+        self.audio_event_queue = queue.Queue()
         self.status_queue = queue.Queue()
         self.mode = 0
         self.recording = False
