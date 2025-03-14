@@ -149,6 +149,7 @@ class DeviceServiceServicer(comms_pb2_grpc.DeviceServiceServicer):
                                     else:
                                         # Handle partial chunks
                                         # Convert to bytearray for easier manipulation
+                                        # https://pyogg.readthedocs.io/en/latest/examples.html
                                         chunk_bytes = bytearray(chunk)
                                         # Calculate padding needed
                                         padding_needed = desired_frame_size - (len(chunk_bytes) // 2)
