@@ -37,8 +37,7 @@ BUT, the encoder needs to be streaming, so read the file in as PCM wave data. Se
 * How does the device handle interrupts? (i.e. start a new audio file before the previous one is done playing)
 * Why does the client queue up button events even when it's not connected to the server?
 
-multiple devices clue...
-https://grpc.io/docs/what-is-grpc/core-concepts/#bidirectional-streaming-rpc
+[multiple devices clue...](https://grpc.io/docs/what-is-grpc/core-concepts/#bidirectional-streaming-rpc)
 
 ## Closed Questions
 
@@ -51,7 +50,7 @@ https://grpc.io/docs/what-is-grpc/core-concepts/#bidirectional-streaming-rpc
 * How is an audio file closed? Does simply ending the stream from the server close it?
   A: Yes, because it is read in chunks and exits when there are no more chunks
 * Do I need to chunk the sound buffer from memory into multiple AudioPacket messages to play back streaming audio?
-  A: Yes, see commit id 
+  A: Yes, see commit id 950cdd52ba78141a69786fa81d546f24018b2163
 * Why is the client function handle_status_response actually using logic from requests, not responses? Without modifying the client, this is very confusing
   A: The terms "request" and "response" are very confusing in this test. I just figured that part out.
 * Why doesn't the server ever enter the request_iterator loop when it gets a status request iterator?
