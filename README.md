@@ -20,17 +20,22 @@ sudo apt install opus-tools
 pw-record --channels=1 --rate=48000 --format=s16 - | opusenc --raw --raw-rate 48000 --raw-chan 1 - playback.opus
 ```
 
+BUT, the encoder needs to be streaming, so read the file in as PCM wave data. See implementation in server.py
+
 ## TODO
 
+* Fix last packet padding to actually work for any file length, which fixes the mode select playback
 * Device state control for multiple devices
+  * gRPC metadata for device_id
   * Audio transport control for multiple devices
 * Draw protocol diagram from client/server interaction and protos.
-* Make an LED state transition flash-at-connect function, for fun!  
 * turn off all LEDs on disconnect (this might be a client side thing)
-* Fix bug where device set messages don't always send on button events.
+* Fix intermittent bug where device set messages don't always send on button events.
+* Remove device_id from the protos since it's sent over gRPC metadata
 
 ## Open Questions
 
+* Stop playback doesn't actually stop playback so maybe it isn't necessary?
 * How do I handle gRPC metadata to get the device_id on the server?
 * How does the device handle interrupts? (i.e. start a new audio file before the previous one is done playing)
 

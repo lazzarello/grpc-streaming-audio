@@ -1,6 +1,9 @@
 import wave
 import pyaudio
 
+'''
+this demonstrates that pyaudio is broken on Linux
+'''
 def play_audio_file(file_path="playback.wav"):
     # Set chunk size for streaming
     chunk_size = 1024

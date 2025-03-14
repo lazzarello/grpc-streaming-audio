@@ -8,6 +8,8 @@ import audio
 
 # TODO: save multiple device states in a dictionary
 devices_states = {}
+# this is the reference file for encoding settings, it is not played
+# probably add a whole class later to do all the audio codec bits
 sound_filename = 'playback.wav'
 sound_buffer = audio.wave.open(sound_filename, 'rb')
 samples_per_second = sound_buffer.getframerate()
@@ -21,6 +23,7 @@ print(f"  Compression type: {sound_buffer.getcomptype()}")
 print(f"  Duration: {sound_buffer.getnframes() / samples_per_second:.2f} seconds")
 desired_frame_duration = 20/1000 # 20ms in seconds
 desired_frame_size = int(desired_frame_duration * samples_per_second)
+sound_buffer.close()
 
 class DeviceServiceServicer(comms_pb2_grpc.DeviceServiceServicer):
     def __init__(self):
@@ -103,7 +106,8 @@ class DeviceServiceServicer(comms_pb2_grpc.DeviceServiceServicer):
                             if event["play"]:
                                 # Play event received, start streaming audio
                                 print("Play event received, starting audio stream")
-                                sound_buffer = audio.wave.open(sound_filename, 'rb')
+                                sound_buffer = audio.wave.open(
+                                    self.device_manager.audio_filenames[self.device_manager.mode], 'rb')
                                 
                                 # Send start packet with first chunk of audio
                                 first_chunk = sound_buffer.readframes(desired_frame_size)

@@ -19,7 +19,12 @@ class DeviceManager():
         self.status_queue = queue.Queue()
         self.mode = 0
         self.recording = False
-        self.audio_frames = []
+        self.audio_filenames = ["playback.wav",
+                                 "mode_1.wav", 
+                                 "mode_2.wav", 
+                                 "mode_3.wav", 
+                                 "mode_4.wav", 
+                                 "mode_5.wav"]
         self.stream = None
 
     def device_status_set(self, leds):
@@ -34,16 +39,31 @@ class DeviceManager():
         )
 
     def handle_play_event(self, event):
-        self.leds[2] = 0xFFFF00FF if self.leds[2] == 0x00000000 else 0x00000000
-        print(f"Led 2 is {hex(self.leds[2])}")
         status_set = self.device_status_set(self.leds)
         self.status_queue.put(comms_pb2.DeviceStatusRequest(set=status_set))
         self.audio_event_queue.put({"play": True})
         print(f"DeviceManager handled mode event {repr(event)}, set device state to {text_format.MessageToString(status_set)}")
 
     def handle_mode_event(self, event):
-        self.leds[3] = 0xFF00FFFF if self.leds[3] == 0x00000000 else 0x00000000
-        print(f"Led 3 is {hex(self.leds[3])}")
+        # Ignore LED 0, cycle through LEDs 1-5
+        # First, check if any LED is currently on
+        active_led = -1
+        for i in range(1, 6):
+            if self.leds[i] != 0x00000000:
+                active_led = i
+                break
+        
+        # Turn off the active LED if there is one
+        if active_led != -1:
+            self.leds[active_led] = 0x00000000
+            
+        # Turn on the next LED in sequence (with wraparound)
+        next_led = 1 if active_led == 5 or active_led == -1 else active_led + 1
+        self.leds[next_led] = 0xFF00FFFF  # Magenta color
+        self.mode = next_led
+        print(f"Device is in mode {self.mode}")
+        
+        print(f"LED {next_led} is now on: {hex(self.leds[next_led])}")
         status_set = self.device_status_set(self.leds)
         self.status_queue.put(comms_pb2.DeviceStatusRequest(set=status_set))
         print(f"DeviceManager handled mode event {repr(event)}, set device state to {text_format.MessageToString(status_set)}")
