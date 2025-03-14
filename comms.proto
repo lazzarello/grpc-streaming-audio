@@ -107,13 +107,20 @@ message AudioPacket {
 service DeviceService {
   // The server send DeviceStatusRequests and expects responses in
   // DeviceStatusResponse
+  // this seems backwards, the client connects to this channel on the server then sends a request to get it's status from the server
+  // In the implementation in the python endpoints, it is backwards, where the client connects, then the server sends a Response
+  // which is to set the device status with DeviceStatusSet
+  // this could probably be a uni-directional stream since the device status is never stored on the client
   rpc StatusStream(stream DeviceStatusResponse)
       returns (stream DeviceStatusRequest);
 
   // The device streams DeviceEvents(s) and expects a DeviceEventResponse to ACK
+  // does this need to be bidirectional? it seems all the server needs to do is respond it received the device event over the channel
+  //
   rpc EventStream(stream DeviceEvent) returns (stream DeviceEventResponse);
 
   // The device opens a stream from the server with an AudioStreamRequest and server 
   // streams Opus-encoded audio packets
+  // this seems like a decent use of a uni-directional stream, streams audio from the server to the client
   rpc ServerAudioStream(AudioStreamRequest) returns (stream AudioPacket);
 }
