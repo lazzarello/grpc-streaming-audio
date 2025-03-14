@@ -6,11 +6,9 @@ import comms_pb2_grpc
 from device_manager import DeviceManager
 import audio
 
-# TODO: save multiple device states in a dictionary
-devices_states = {}
 # this is the reference file for encoding settings, it is not played
 # probably add a whole class later to do all the audio codec bits
-sound_filename = 'playback.wav'
+sound_filename = 'startup_mode.wav'
 sound_buffer = audio.wave.open(sound_filename, 'rb')
 samples_per_second = sound_buffer.getframerate()
 # Print debugging information about the wave file
@@ -27,17 +25,29 @@ sound_buffer.close()
 
 class DeviceServiceServicer(comms_pb2_grpc.DeviceServiceServicer):
     def __init__(self):
-        self.device_manager = DeviceManager() # TODO: get id from metadata in client...
+        self.device_manager = DeviceManager()
         self.opus_coder = audio.OpusCoder(sample_rate=48000, channels=1)
+        self.device_states = {}
 
     def StatusStream(self, request_iterator, context):
         '''
         Handle device status requests from the client, and return the device status.
         Device connects and listens, send something immediately.
         Set state immediately from DeviceManager to set the status from output proto.
+        On connect, try and get device state from the dictionary, otherwise, make a new device_manager
         '''
         print("Server received status request from client")
-        status_set = self.device_manager.device_status_set(self.device_manager.leds)
+        # Print the metadata
+        metadata = dict(context.invocation_metadata())
+        print(f"Client metadata received: {metadata}")
+        
+        # If you want to specifically access the device_id
+        device_id = metadata.get('device_id', 'unknown')
+        
+        device_manager = self.device_states.get(device_id, self.device_manager)
+        status_set = device_manager.device_status_set(device_manager.leds)
+        device_manager.device_id = device_id
+        print(f"Saved state for device {device_id} with data {repr(device_manager)}")
         yield comms_pb2.DeviceStatusRequest(set=status_set)
 
         # for status_response in request_iterator:
@@ -64,6 +74,11 @@ class DeviceServiceServicer(comms_pb2_grpc.DeviceServiceServicer):
         '''
         When the client and server have acknowledged the event, return an ack, then loop over the request_iterator for events.
         Do we need an event queue here? IDK, seems like no but the good pattern is to have a queue.
+
+        Maybe for each event recieved, put it on a queue, then have a loop in DeviceManager that handles the events.
+        This is where the async bits could exist.
+
+        See function message_generator in client.py for an example of turning a queue into a generator
         '''
         try:
             for request in request_iterator:
@@ -85,7 +100,7 @@ class DeviceServiceServicer(comms_pb2_grpc.DeviceServiceServicer):
         '''
         Audio stream should have a logic block to look for the start message, 
         which opens the gRPC stream, then waits for a play event, then starts streaming audio.
-        The transport controls are a bit of a mess, they might be redundantly using a second queue but hey, they work now...
+        The transport control logic is a bit of a mess, they might be redundantly using a second queue but hey, they work now...
         '''
         import queue
         
@@ -111,7 +126,7 @@ class DeviceServiceServicer(comms_pb2_grpc.DeviceServiceServicer):
                                 
                                 # Send start packet with first chunk of audio
                                 first_chunk = sound_buffer.readframes(desired_frame_size)
-                                print(f"Server read first audio chunk {len(first_chunk)} long")
+                                print(f"Server read first audio chunk {len(first_chunk)} bytes ")
                                 first_opus_data = self.opus_coder.encode(first_chunk)
                                 yield comms_pb2.AudioPacket(
                                     is_start=True,
@@ -140,7 +155,7 @@ class DeviceServiceServicer(comms_pb2_grpc.DeviceServiceServicer):
                                     
                                     if len(chunk) // 2 == desired_frame_size:
                                         opus_data = self.opus_coder.encode(chunk)
-                                        print(f"Server read audio chunk {len(chunk)} long")
+                                        print(f"Server read audio chunk {len(chunk)} bytes")
                                         yield comms_pb2.AudioPacket(
                                             is_start=False,
                                             is_end=False,
@@ -155,7 +170,7 @@ class DeviceServiceServicer(comms_pb2_grpc.DeviceServiceServicer):
                                         padding_needed = desired_frame_size - (len(chunk_bytes) // 2)
                                         # Add padding bytes (zeros)
                                         padded_data = chunk_bytes + b'\x00' * (padding_needed * 2)
-                                        print(f"Server read padded audio chunk {len(chunk)} long and padded to {len(padded_data)}")
+                                        print(f"Server read short audio chunk {len(chunk)} bytes and padded to {len(padded_data)} bytes")
                                         opus_data = self.opus_coder.encode(padded_data)
                                         yield comms_pb2.AudioPacket(
                                             is_start=False,

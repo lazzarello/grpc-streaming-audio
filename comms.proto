@@ -7,7 +7,6 @@ message RGBAColor {
 }
 
 // Represents the device state (LEDs, Buttons and everything else)
-// DeviceStatus doesn't have device ID so the server can't support multiple devices yet.
 message DeviceStatus {
   enum ButtonStatus {
     PRESSED = 0;
@@ -28,8 +27,6 @@ message DeviceStatus {
   ButtonStatus button_4 = 10;
 
   float battery_level = 11;  // Battery level of the device
-  // UNUSED! I didn't know about gRPC metadata when I added it
-  string device_id = 12; // a string indicating the device id
 }
 
 message DeviceStatusSet {
