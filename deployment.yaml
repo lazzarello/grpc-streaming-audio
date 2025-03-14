@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: device-server
+spec:
+  selector:
+    matchLabels:
+      run: device-server
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        run: device-server
+    spec:
+      containers:
+      - name: device-server
+        image: device-server:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 50051

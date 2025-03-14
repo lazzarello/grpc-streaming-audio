@@ -9,16 +9,20 @@
 ## Deployment in Docker
 
 ```bash
-docker build -t streaming-audio-server .
-docker run -p 50051:50051 streaming-audio-server
+docker build -t device-server:local .
+docker run -p 50051:50051 device-server:local
 ```
 
 ## Deployment in Kubernetes
 
+microk8s is a single node kubernetes cluster. It can use images build locally if they are exported from docker and imported into the ctr cache. [Project documentation](https://microk8s.io/docs/registry-images)
+
 ```bash
 snap install microk8s --classic
-kubectl apply -f streaming-audio-server-deployment.yaml
-kubectl apply -f streaming-audio-server-service.yaml
+docker save device-server > device-server-export.tar
+microk8s.ctr image import device-server-export.tar
+kubectl apply -f deployment.yaml
+kubectl apply -f service.yaml
 ```
 
 ## Encoding Opus audio with Pipewire on Linux
@@ -32,20 +36,20 @@ BUT, the encoder needs to be streaming, so read the file in as PCM wave data. Se
 
 ## TODO
 
-* Make kubernetes deployment manifest and NodePort service for server
-* Deploy server into microk8s
 * Draw protocol diagram from client/server interaction and protos.
 * change LED state where LED 1 illuminates when the server is connected
 
 ## Open Questions
 
-* How does the device handle interrupts? (i.e. start a new audio file before the previous one is done playing)
-* Why does the client queue up button events even when it's not connected to the server?
 
 [multiple devices clue...](https://grpc.io/docs/what-is-grpc/core-concepts/#bidirectional-streaming-rpc)
 
 ## Closed Questions
 
+* Why does the client queue up button events even when it's not connected to the server?
+  A: because it's written that way...this should be changed for a production device
+* How does the device handle interrupts? (i.e. start a new audio file before the previous one is done playing)
+  A: it kind of does now but the timing and logic are not too good, if working at all. This can be improved with some more attention to the audio transport queue loop.
 * Why is the reconnect logic not working as expected? As of 3/14/25 I have to toggle the stop button to get it into a state where it plays audio over the stream.
   A: because of a logic bug in the interaction between audio transport and the device state. On reconnect, the play button must be pressed once, it fails to play, then the stop button must be pressed once. From here the audio transport is in a state where it can play audio.
 * Stop playback doesn't actually stop playback so maybe it isn't necessary?
@@ -75,4 +79,4 @@ BUT, the encoder needs to be streaming, so read the file in as PCM wave data. Se
 * How will the server handle concurrency for multiple device states?
   A: Initially, a single python dictionary could work, especially with asyncio, might be different with threads.
 * Cloud deploy? Weeeee, that's the easy part.
-  A: Make a dockerfile and deploy to Render or something like that
+  A: Make a dockerfile and deploy locally to microk8s, then deploy to a kubernetes service or just the docker imeage to Render or another cloud app platform.

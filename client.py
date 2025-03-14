@@ -272,6 +272,7 @@ class App(QWidget):
 
     def setup_client(self, device_id):
         self.channel = grpc.insecure_channel(f"localhost:50051")
+        # self.channel = grpc.insecure_channel(f"localhost:31195")
 
         stub = comms_pb2_grpc.DeviceServiceStub(self.channel)
         metadata = [("device_id", device_id)]
