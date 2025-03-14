@@ -36,13 +36,9 @@ BUT, the encoder needs to be streaming, so read the file in as PCM wave data. Se
 
 ## TODO
 
-* Draw protocol diagram from client/server interaction and protos.
 * change LED state where LED 1 illuminates when the server is connected
 
 ## Open Questions
-
-
-[multiple devices clue...](https://grpc.io/docs/what-is-grpc/core-concepts/#bidirectional-streaming-rpc)
 
 ## Closed Questions
 
@@ -77,6 +73,6 @@ BUT, the encoder needs to be streaming, so read the file in as PCM wave data. Se
 * How do I rebuild the protobuf files?
   A: See README.md
 * How will the server handle concurrency for multiple device states?
-  A: Initially, a single python dictionary could work, especially with asyncio, might be different with threads.
+  A: Initially, a single python dictionary could work, especially with asyncio, might be different with threads. gRPC has [metadata available for each connection](https://grpc.io/docs/what-is-grpc/core-concepts/#bidirectional-streaming-rpc)
 * Cloud deploy? Weeeee, that's the easy part.
   A: Make a dockerfile and deploy locally to microk8s, then deploy to a kubernetes service or just the docker imeage to Render or another cloud app platform.
