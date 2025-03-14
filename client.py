@@ -157,6 +157,8 @@ class App(QWidget):
         # Add LEDs. Shapes are for mode
         self.led_0 = Shape(self, "circle", 60, 235, 16, "#000000")  # Power
         self.led_1 = Shape(self, "circle", 100, 235, 16, "#000000")  # Server status
+        # lulz, read this part too late, these names are cute, change the loop on disconnect
+        # probs should put this into a list like in the server
         self.square = Shape(self, "square", 163, 235, 18, "#000000")  # Led 2
         self.rhomboid = Shape(self, "rhomboid", 200, 235, 18, "#000000")  # Led 3
         self.triangle = Shape(self, "triangle", 236, 235, 18, "#000000")  # Led 4
@@ -182,8 +184,10 @@ class App(QWidget):
         self.event_queue.put({"button_id": comms_pb2.ButtonEvent.ButtonId.BUTTON_2})
 
     def handle_power_click(self):
-        # If on, turn off and close connection
+        # If on, turn off and close connection and send stop click to reset server state
         if self.channel:
+            # this fails because the channel is closed before the message is sent over the channel
+            self.handle_stop_click()
             # Terminate all RPCs
             for rpc in self.active_rpcs:
                 rpc.cancel()
@@ -202,11 +206,19 @@ class App(QWidget):
             self.running_threads = []
             print("Joined all threads")
 
-            # Turn off all LEDs
+            # Turn off all LEDs, could be a loop after the object properties are updated
             self.led_0.color = QColor("black")
             self.led_0.update()
             self.led_1.color = QColor("black")
             self.led_1.update()
+            self.square.color = QColor("black")
+            self.square.update()
+            self.rhomboid.color = QColor("black")
+            self.rhomboid.update()
+            self.triangle.color = QColor("black")
+            self.triangle.update()
+            self.circle.color = QColor("black")
+            self.circle.update()
         else:
             # Start new connection
             self.setup_client(self.device_id_input.text())

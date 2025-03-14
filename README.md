@@ -6,11 +6,19 @@
 
 `python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. --pyi_out=. comms.proto`
 
-## Deployment
+## Deployment in Docker
 
 ```bash
 docker build -t streaming-audio-server .
 docker run -p 50051:50051 streaming-audio-server
+```
+
+## Deployment in Kubernetes
+
+```bash
+snap install microk8s --classic
+kubectl apply -f streaming-audio-server-deployment.yaml
+kubectl apply -f streaming-audio-server-service.yaml
 ```
 
 ## Encoding Opus audio with Pipewire on Linux
@@ -24,16 +32,13 @@ BUT, the encoder needs to be streaming, so read the file in as PCM wave data. Se
 
 ## TODO
 
-* Device state control for multiple devices
-  * gRPC metadata for device_id
-  * Audio transport control for multiple devices
+* Make kubernetes deployment manifest and NodePort service for server
+* Deploy server into microk8s
 * Draw protocol diagram from client/server interaction and protos.
-* Remove device_id from the protos since it's sent over gRPC metadata
-* turn off all LEDs on disconnect (this might be a client side thing)
+* change LED state where LED 1 illuminates when the server is connected
 
 ## Open Questions
 
-* How do I handle gRPC metadata to get the device_id on the server?
 * How does the device handle interrupts? (i.e. start a new audio file before the previous one is done playing)
 * Why does the client queue up button events even when it's not connected to the server?
 
@@ -41,6 +46,8 @@ BUT, the encoder needs to be streaming, so read the file in as PCM wave data. Se
 
 ## Closed Questions
 
+* Why is the reconnect logic not working as expected? As of 3/14/25 I have to toggle the stop button to get it into a state where it plays audio over the stream.
+  A: because of a logic bug in the interaction between audio transport and the device state. On reconnect, the play button must be pressed once, it fails to play, then the stop button must be pressed once. From here the audio transport is in a state where it can play audio.
 * Stop playback doesn't actually stop playback so maybe it isn't necessary?
   A: It is necessary since the mode cycles change which audio file is played
 * What does the stop button do?
