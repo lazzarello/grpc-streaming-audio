@@ -24,28 +24,28 @@ BUT, the encoder needs to be streaming, so read the file in as PCM wave data. Se
 
 ## TODO
 
-* Fix last packet padding to actually work for any file length, which fixes the mode select playback
 * Device state control for multiple devices
   * gRPC metadata for device_id
   * Audio transport control for multiple devices
 * Draw protocol diagram from client/server interaction and protos.
-* turn off all LEDs on disconnect (this might be a client side thing)
-* Fix intermittent bug where device set messages don't always send on button events.
 * Remove device_id from the protos since it's sent over gRPC metadata
+* turn off all LEDs on disconnect (this might be a client side thing)
 
 ## Open Questions
 
-* Stop playback doesn't actually stop playback so maybe it isn't necessary?
 * How do I handle gRPC metadata to get the device_id on the server?
 * How does the device handle interrupts? (i.e. start a new audio file before the previous one is done playing)
+* Why does the client queue up button events even when it's not connected to the server?
 
 multiple devices clue...
 https://grpc.io/docs/what-is-grpc/core-concepts/#bidirectional-streaming-rpc
 
 ## Closed Questions
 
+* Stop playback doesn't actually stop playback so maybe it isn't necessary?
+  A: It is necessary since the mode cycles change which audio file is played
 * What does the stop button do?
-  A: In the comments of the client, it turns all LEDs off 
+  A: In the comments of the client, it turns all LEDs off
 * How do I use the finite state machine pattern for the device state + button events?
   A: From Termie "If play and stop do different things based on some other toggle etc you can start pretending that state machine is useful. But if they always play and always stop then that's just what they do"
 * How is an audio file closed? Does simply ending the stream from the server close it?

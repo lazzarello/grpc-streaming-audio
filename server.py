@@ -148,9 +148,12 @@ class DeviceServiceServicer(comms_pb2_grpc.DeviceServiceServicer):
                                         )
                                     else:
                                         # Handle partial chunks
-                                        # LLM added this, which fails but revealed that I wasn't encoding the last chunk, just padding it
-                                        # opus_data = self.opus_coder.encode(chunk)
-                                        padded_data = bytes(chunk).ljust(desired_frame_size, b'\x00')
+                                        # Convert to bytearray for easier manipulation
+                                        chunk_bytes = bytearray(chunk)
+                                        # Calculate padding needed
+                                        padding_needed = desired_frame_size - (len(chunk_bytes) // 2)
+                                        # Add padding bytes (zeros)
+                                        padded_data = chunk_bytes + b'\x00' * (padding_needed * 2)
                                         print(f"Server read padded audio chunk {len(chunk)} long and padded to {len(padded_data)}")
                                         opus_data = self.opus_coder.encode(padded_data)
                                         yield comms_pb2.AudioPacket(

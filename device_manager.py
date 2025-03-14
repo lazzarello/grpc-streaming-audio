@@ -19,7 +19,7 @@ class DeviceManager():
         self.status_queue = queue.Queue()
         self.mode = 0
         self.recording = False
-        self.audio_filenames = ["playback.wav",
+        self.audio_filenames = ["startup_mode.wav",
                                  "mode_1.wav", 
                                  "mode_2.wav", 
                                  "mode_3.wav", 
@@ -73,6 +73,7 @@ class DeviceManager():
         self.leds = [0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000]
         print(f"All LEDs turned off")
         status_set = self.device_status_set(self.leds)
+        self.mode = 0
         self.audio_event_queue.put({"play": False})
         self.status_queue.put(comms_pb2.DeviceStatusRequest(set=status_set))
         print(f"DeviceManager handled stop event {repr(event)}, set device state to {text_format.MessageToString(status_set)}")
