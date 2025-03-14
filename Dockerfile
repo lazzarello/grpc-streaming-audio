@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     libvorbis-dev \
     libopus-dev \
     git \
+    portaudio19-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
@@ -18,7 +19,7 @@ WORKDIR /app
 COPY requirements.txt .
 
 # Install Python dependencies only for the server
-RUN pip install grpcio protobuf
+RUN pip install grpcio protobuf pyaudio "pyogg @ git+https://github.com/TeamPyOgg/PyOgg@4118fc4"
 
 # Copy server code
 COPY . .
