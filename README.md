@@ -36,7 +36,11 @@ BUT, the encoder needs to be streaming, so read the file in as PCM wave data. Se
 
 ## TODO
 
+* [Async implementation of state signalling](https://github.com/grpc/grpc/tree/master/examples/python/async_streaming) and audio stream example from gRPC source repo. This example uses threading and generators, [while another example](https://github.com/grpc/grpc/blob/master/examples/python/helloworld/async_greeter_server.py#L34) uses the newer `grpc.aio` module, which looks like it moves all the async bits into the server/client connection objects and keeps the other code looking similar enough, with async function definitions.
+* Play streaming audio buffer on client with optional record option
+* fix business logic in all streams to handle edge cases, especially re-connect
 * change LED state where LED 1 illuminates when the server is connected
+* Add encryption and authentication for client sessions
 
 ## Open Questions
 

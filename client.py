@@ -186,8 +186,6 @@ class App(QWidget):
     def handle_power_click(self):
         # If on, turn off and close connection and send stop click to reset server state
         if self.channel:
-            # this fails because the channel is closed before the message is sent over the channel
-            self.handle_stop_click()
             # Terminate all RPCs
             for rpc in self.active_rpcs:
                 rpc.cancel()
