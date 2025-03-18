@@ -2,6 +2,21 @@
 
 ## See INSTRUCTIONS.md for the assignment description
 
+## Running
+
+```bash
+pip install -r requirements.txt
+python server.py
+python client.py
+```
+
+## Notes
+
+* This implementation has a synchronous implementation using threads and queues. This is not optimal. There is a bug in the re-connect logic in state management. There are a number of wav files checked into the code that the server expects.
+* After completing a proof-of-concept, I took a look through the [gRPC source code](https://github.com/grpc/grpc/tree/master/examples/python/async_streaming) and found this example of a bi-direction, single streaming channel with async state management and audio streaming, implemented in Python.
+* This implementatioin uses generators and threads and can be refactored to use asyncio.
+* Regarding scaling audio transport to client endpoints, WebRTC can be used between the server and client. [The Pipecat project](https://github.com/pipecat-ai/pipecat) could be a good start.
+
 ## Generating protocol buffer code
 
 `python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. --pyi_out=. comms.proto`
