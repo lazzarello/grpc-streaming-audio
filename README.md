@@ -59,6 +59,9 @@ BUT, the encoder needs to be streaming, so read the file in as PCM wave data. Se
 
 ## Open Questions
 
+* gRPC for the full lifecycle of a session? This could work and it looks like [Mumble had gRPC support](https://github.com/mumble-voip/mumble/pull/5552)  but it was removed due to lack of a maintainer. This could be a departure point for further study. This works best if both endpoints are controlled, which could be the case here since the target is a custom hardware device.
+* NAT traversal! Referencing Mumble reminded me that endpointing for synchronous audio streaming is a solved problem but there are many solutions. This could be a strong reason to use gRPC.
+
 ## Closed Questions
 
 * Why does the client queue up button events even when it's not connected to the server?
