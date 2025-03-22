@@ -1,4 +1,4 @@
-# Opal Backend Exercise
+# Exercise
 
 As part of our interview process, we like to see some code from our candidates. We think it helps us get to know you better, but also helps you get a sense of some of the things we are currently working on. This also gives us something concrete to discuss and work on after the fact.
 
